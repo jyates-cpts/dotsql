@@ -14,8 +14,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-
-	"github.com/jmoiron/sqlx"
 )
 
 // Preparer is an interface used by Prepare.
@@ -30,12 +28,12 @@ type PreparerContext interface {
 
 // Queryer is an interface used by Query.
 type Queryer interface {
-	Query(query string, args ...interface{}) (*sqlx.Rows, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
 // QueryerContext is an interface used by Queryx.
 type QueryerContext interface {
-	Queryx(ctx context.Context, query string, args ...interface{}) (*sqlx.Rows, error)
+	Queryx(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 }
 
 // QueryRower is an interface used by QueryRow.
@@ -93,7 +91,7 @@ func (d DotSql) PrepareContext(ctx context.Context, db PreparerContext, name str
 }
 
 // Query is a wrapper for database/sql's Query(), using dotsql named query.
-func (d DotSql) Query(db Queryer, name string, args ...interface{}) (*sqlx.Rows, error) {
+func (d DotSql) Query(db Queryer, name string, args ...interface{}) (*sql.Rows, error) {
 	query, err := d.lookupQuery(name)
 	if err != nil {
 		return nil, err
@@ -103,7 +101,7 @@ func (d DotSql) Query(db Queryer, name string, args ...interface{}) (*sqlx.Rows,
 }
 
 // Queryx is a wrapper for database/sql's Queryx(), using dotsql named query.
-func (d DotSql) Queryx(ctx context.Context, db QueryerContext, name string, args ...interface{}) (*sqlx.Rows, error) {
+func (d DotSql) Queryx(ctx context.Context, db QueryerContext, name string, args ...interface{}) (*sql.Rows, error) {
 	query, err := d.lookupQuery(name)
 	if err != nil {
 		return nil, err
