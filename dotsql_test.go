@@ -238,7 +238,7 @@ func TestQuery(t *testing.T) {
 	}
 }
 
-func TestQueryx(t *testing.T) {
+func TestQueryContext(t *testing.T) {
 	dot := DotSql{
 		queries: map[string]string{
 			"select": "SELECT * from users WHERE name = ?",
@@ -247,7 +247,7 @@ func TestQueryx(t *testing.T) {
 
 	queryerContextStub := func(err error) *QueryerContextMock {
 		return &QueryerContextMock{
-			QueryxFunc: func(_ context.Context, _ string, _ ...interface{}) (*sql.Rows, error) {
+			QueryContextFunc: func(_ context.Context, _ string, _ ...interface{}) (*sql.Rows, error) {
 				if err != nil {
 					return nil, err
 				}
@@ -261,7 +261,7 @@ func TestQueryx(t *testing.T) {
 
 	// query not found
 	q := queryerContextStub(nil)
-	rows, err := dot.Queryx(ctx, q, "insert", arg)
+	rows, err := dot.QueryContext(ctx, q, "insert", arg)
 	if rows != nil {
 		t.Error("rows expected to be nil, got non-nil")
 	}
@@ -270,14 +270,14 @@ func TestQueryx(t *testing.T) {
 		t.Error("err expected to be non-nil, got nil")
 	}
 
-	ff := q.QueryxCalls()
+	ff := q.QueryContextCalls()
 	if len(ff) > 0 {
 		t.Error("query was not expected to be called")
 	}
 
 	// error returned by db
 	q = queryerContextStub(errors.New("critical error"))
-	rows, err = dot.Queryx(ctx, q, "select", arg)
+	rows, err = dot.QueryContext(ctx, q, "select", arg)
 	if rows != nil {
 		t.Error("rows expected to be nil, got non-nil")
 	}
@@ -286,7 +286,7 @@ func TestQueryx(t *testing.T) {
 		t.Error("err expected to be non-nil, got nil")
 	}
 
-	ff = q.QueryxCalls()
+	ff = q.QueryContextCalls()
 	if len(ff) != 1 {
 		t.Errorf("query was expected to be called only once, but was called %d times", len(ff))
 	} else if ff[0].Query != dot.queries["select"] {
@@ -301,14 +301,14 @@ func TestQueryx(t *testing.T) {
 
 	// successful query
 	q = queryerContextStub(nil)
-	rows, err = dot.Queryx(ctx, q, "select", arg)
+	rows, err = dot.QueryContext(ctx, q, "select", arg)
 	if rows == nil {
 		t.Error("rows expected to be non-nil, got nil")
 	}
 
 	failIfError(t, err)
 
-	ff = q.QueryxCalls()
+	ff = q.QueryContextCalls()
 	if len(ff) != 1 {
 		t.Errorf("query was expected to be called only once, but was called %d times", len(ff))
 	} else if ff[0].Query != dot.queries["select"] {

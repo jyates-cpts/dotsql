@@ -226,7 +226,7 @@ func (mock *QueryerMock) QueryCalls() []struct {
 }
 
 var (
-	lockQueryerContextMockQueryx sync.RWMutex
+	lockQueryerContextMockQueryContext sync.RWMutex
 )
 
 // Ensure, that QueryerContextMock does implement QueryerContext.
@@ -239,8 +239,8 @@ var _ QueryerContext = &QueryerContextMock{}
 //
 //         // make and configure a mocked QueryerContext
 //         mockedQueryerContext := &QueryerContextMock{
-//             QueryxFunc: func(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-// 	               panic("mock out the Queryx method")
+//             QueryContextFunc: func(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+// 	               panic("mock out the QueryContext method")
 //             },
 //         }
 //
@@ -249,13 +249,13 @@ var _ QueryerContext = &QueryerContextMock{}
 //
 //     }
 type QueryerContextMock struct {
-	// QueryxFunc mocks the Queryx method.
-	QueryxFunc func(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+	// QueryContextFunc mocks the QueryContext method.
+	QueryContextFunc func(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// Queryx holds details about calls to the Queryx method.
-		Queryx []struct {
+		// QueryContext holds details about calls to the QueryContext method.
+		QueryContext []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Query is the query argument value.
@@ -266,10 +266,10 @@ type QueryerContextMock struct {
 	}
 }
 
-// Queryx calls QueryxFunc.
-func (mock *QueryerContextMock) Queryx(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	if mock.QueryxFunc == nil {
-		panic("QueryerContextMock.QueryxFunc: method is nil but QueryerContext.Queryx was just called")
+// QueryContext calls QueryContextFunc.
+func (mock *QueryerContextMock) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	if mock.QueryContextFunc == nil {
+		panic("QueryerContextMock.QueryContextFunc: method is nil but QueryerContext.QueryContext was just called")
 	}
 	callInfo := struct {
 		Ctx   context.Context
@@ -280,16 +280,16 @@ func (mock *QueryerContextMock) Queryx(ctx context.Context, query string, args .
 		Query: query,
 		Args:  args,
 	}
-	lockQueryerContextMockQueryx.Lock()
-	mock.calls.Queryx = append(mock.calls.Queryx, callInfo)
-	lockQueryerContextMockQueryx.Unlock()
-	return mock.QueryxFunc(ctx, query, args...)
+	lockQueryerContextMockQueryContext.Lock()
+	mock.calls.QueryContext = append(mock.calls.QueryContext, callInfo)
+	lockQueryerContextMockQueryContext.Unlock()
+	return mock.QueryContextFunc(ctx, query, args...)
 }
 
-// QueryxCalls gets all the calls that were made to Queryx.
+// QueryContextCalls gets all the calls that were made to QueryContext.
 // Check the length with:
-//     len(mockedQueryerContext.QueryxCalls())
-func (mock *QueryerContextMock) QueryxCalls() []struct {
+//     len(mockedQueryerContext.QueryContextCalls())
+func (mock *QueryerContextMock) QueryContextCalls() []struct {
 	Ctx   context.Context
 	Query string
 	Args  []interface{}
@@ -299,9 +299,9 @@ func (mock *QueryerContextMock) QueryxCalls() []struct {
 		Query string
 		Args  []interface{}
 	}
-	lockQueryerContextMockQueryx.RLock()
-	calls = mock.calls.Queryx
-	lockQueryerContextMockQueryx.RUnlock()
+	lockQueryerContextMockQueryContext.RLock()
+	calls = mock.calls.QueryContext
+	lockQueryerContextMockQueryContext.RUnlock()
 	return calls
 }
 

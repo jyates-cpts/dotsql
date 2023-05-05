@@ -31,9 +31,9 @@ type Queryer interface {
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
-// QueryerContext is an interface used by Queryx.
+// QueryerContext is an interface used by QueryContext.
 type QueryerContext interface {
-	Queryx(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 }
 
 // QueryRower is an interface used by QueryRow.
@@ -100,14 +100,14 @@ func (d DotSql) Query(db Queryer, name string, args ...interface{}) (*sql.Rows, 
 	return db.Query(query, args...)
 }
 
-// Queryx is a wrapper for database/sql's Queryx(), using dotsql named query.
-func (d DotSql) Queryx(ctx context.Context, db QueryerContext, name string, args ...interface{}) (*sql.Rows, error) {
+// QueryContext is a wrapper for database/sql's QueryContext(), using dotsql named query.
+func (d DotSql) QueryContext(ctx context.Context, db QueryerContext, name string, args ...interface{}) (*sql.Rows, error) {
 	query, err := d.lookupQuery(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return db.Queryx(ctx, query, args...)
+	return db.QueryContext(ctx, query, args...)
 }
 
 // QueryRow is a wrapper for database/sql's QueryRow(), using dotsql named query.
