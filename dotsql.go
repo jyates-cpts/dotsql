@@ -3,27 +3,25 @@
 // It is not an ORM, it is not a query builder.
 // Dotsql is a library that helps you keep sql files in one place and use it with ease.
 //
-// For more usage examples see https://github.com/qustavo/dotsql
+// For more usage examples see https://github.com/gchaincl/dotsql
 package dotsql
 
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"database/sql"
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/jmoiron/sqlx"
 )
+
+var dotsql *DotSql
 
 // Preparer is an interface used by Prepare.
 type Preparer interface {
 	Prepare(query string) (*sql.Stmt, error)
-}
-
-// PreparerContext is an interface used by PrepareContext.
-type PreparerContext interface {
-	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 }
 
 // Queryer is an interface used by Query.
@@ -31,19 +29,19 @@ type Queryer interface {
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
-// QueryerContext is an interface used by QueryContext.
-type QueryerContext interface {
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+// Queryxer is an interface used by Query.
+type Queryxer interface {
+	Queryx(query string, args ...interface{}) (*sqlx.Rows, error)
 }
 
-// QueryRower is an interface used by QueryRow.
+// QueryRower is an interface used by QueryRow
 type QueryRower interface {
 	QueryRow(query string, args ...interface{}) *sql.Row
 }
 
-// QueryRowerContext is an interface used by QueryRowContext.
-type QueryRowerContext interface {
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+// QueryRower is an interface used by QueryRow
+type QueryRowxer interface {
+	QueryRowx(query string, args ...interface{}) *sqlx.Row
 }
 
 // Execer is an interface used by Exec.
@@ -51,9 +49,9 @@ type Execer interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 }
 
-// ExecerContext is an interface used by ExecContext.
-type ExecerContext interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+// Execer is an interface used by Exec.
+type MustExecer interface {
+	MustExec(query string, args ...interface{}) (sql.Result, error)
 }
 
 // DotSql represents a dotSQL queries holder.
@@ -70,7 +68,7 @@ func (d DotSql) lookupQuery(name string) (query string, err error) {
 	return
 }
 
-// Prepare is a wrapper for database/sql's Prepare(), using dotsql named query.
+// Query is a wrapper for database/sql's Prepare(), using dotsql named query.
 func (d DotSql) Prepare(db Preparer, name string) (*sql.Stmt, error) {
 	query, err := d.lookupQuery(name)
 	if err != nil {
@@ -78,16 +76,6 @@ func (d DotSql) Prepare(db Preparer, name string) (*sql.Stmt, error) {
 	}
 
 	return db.Prepare(query)
-}
-
-// PrepareContext is a wrapper for database/sql's PrepareContext(), using dotsql named query.
-func (d DotSql) PrepareContext(ctx context.Context, db PreparerContext, name string) (*sql.Stmt, error) {
-	query, err := d.lookupQuery(name)
-	if err != nil {
-		return nil, err
-	}
-
-	return db.PrepareContext(ctx, query)
 }
 
 // Query is a wrapper for database/sql's Query(), using dotsql named query.
@@ -100,14 +88,14 @@ func (d DotSql) Query(db Queryer, name string, args ...interface{}) (*sql.Rows, 
 	return db.Query(query, args...)
 }
 
-// QueryContext is a wrapper for database/sql's QueryContext(), using dotsql named query.
-func (d DotSql) QueryContext(ctx context.Context, db QueryerContext, name string, args ...interface{}) (*sql.Rows, error) {
+// Queryx is a wrapper for database/sql's Query(), using dotsql named query.
+func (d DotSql) Queryx(db Queryxer, name string, args ...interface{}) (*sqlx.Rows, error) {
 	query, err := d.lookupQuery(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return db.QueryContext(ctx, query, args...)
+	return db.Queryx(query, args...)
 }
 
 // QueryRow is a wrapper for database/sql's QueryRow(), using dotsql named query.
@@ -120,14 +108,14 @@ func (d DotSql) QueryRow(db QueryRower, name string, args ...interface{}) (*sql.
 	return db.QueryRow(query, args...), nil
 }
 
-// QueryRowContext is a wrapper for database/sql's QueryRowContext(), using dotsql named query.
-func (d DotSql) QueryRowContext(ctx context.Context, db QueryRowerContext, name string, args ...interface{}) (*sql.Row, error) {
+// QueryRow is a wrapper for database/sql's QueryRow(), using dotsql named query.
+func (d DotSql) QueryRowx(db QueryRowxer, name string, args ...interface{}) (*sqlx.Row, error) {
 	query, err := d.lookupQuery(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return db.QueryRowContext(ctx, query, args...), nil
+	return db.QueryRowx(query, args...), nil
 }
 
 // Exec is a wrapper for database/sql's Exec(), using dotsql named query.
@@ -140,14 +128,14 @@ func (d DotSql) Exec(db Execer, name string, args ...interface{}) (sql.Result, e
 	return db.Exec(query, args...)
 }
 
-// ExecContext is a wrapper for database/sql's ExecContext(), using dotsql named query.
-func (d DotSql) ExecContext(ctx context.Context, db ExecerContext, name string, args ...interface{}) (sql.Result, error) {
+// MustExec is a wrapper for sqlx's MustExec(), using dotsql named query.
+func (d DotSql) MustExec(db MustExecer, name string, args ...interface{}) (sql.Result, error) {
 	query, err := d.lookupQuery(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return db.ExecContext(ctx, query, args...)
+	return db.MustExec(query, args...)
 }
 
 // Raw returns the query, everything after the --name tag
@@ -165,8 +153,15 @@ func Load(r io.Reader) (*DotSql, error) {
 	scanner := &Scanner{}
 	queries := scanner.Run(bufio.NewScanner(r))
 
-	dotsql := &DotSql{
-		queries: queries,
+	if dotsql == nil {
+		dotsql = &DotSql{
+			queries: queries,
+		}
+	} else {
+		//merge in new queries
+		for k, v := range queries {
+			dotsql.queries[k] = v
+		}
 	}
 
 	return dotsql, nil
